@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Focus Buddy ADHD Task System</title>
+
+  <style>
+    body {
+      font-family: Arial;
+      background: #f4f6f8;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: auto;
+    }
+
+    h1 {
+      text-align: center;
+    }
+
+    input {
+      padding: 8px;
+      margin: 5px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      width: calc(50% - 14px);
+    }
+
+    .search-box {
+      width: calc(70% - 14px);
+    }
+
+    button {
+      padding: 8px 12px;
+      margin: 5px;
+      border: none;
+      border-radius: 5px;
+      background: #007bff;
+      color: white;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #0056b3;
+    }
+
+    li {
+      background: white;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 8px;
+    }
+
+    .completed {
+      text-decoration: line-through;
+      color: gray;
+    }
+
+    .header {
+      text-align: center;
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 10px;
+    }
+
+    .search-row {
+      display: flex;
+      align-items: center;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+
+    <div class="header">
+      Focus Buddy ADHD Task System
+    </div>
+
+    <h1>Focus Buddy</h1>
+
+    <!-- TASK INPUT -->
+    <input id="title" placeholder="Task title">
+    <input id="description" placeholder="What do you need to do?">
+
+    <button onclick="saveTask()">Add / Save Task</button>
+
+    <!-- SEARCH -->
+    <h3>Search Tasks</h3>
+    <div class="search-row">
+      <input id="searchInput" class="search-box" placeholder="Search by title...">
+      <button onclick="searchTasks()">Search</button>
+      <button onclick="loadTasks()">Reset</button>
+    </div>
+
+    <h3>Your Tasks</h3>
+    <ul id="taskList"></ul>
+  </div>
+
+  <script>
+    const API = "http://localhost:3000/tasks"
+    let editId = null
+
+    async function loadTasks() {
+      const res = await fetch(API)
+      const data = await res.json()
+      renderTasks(data)
+    }
+
+    function renderTasks(data) {
+      const list = document.getElementById("taskList")
+      list.innerHTML = ""
+
+      data.forEach(task => {
+        const li = document.createElement("li")
+
+        const completedClass = task.status === "completed" ? "completed" : ""
+
+        li.innerHTML = `
+          <span class="${completedClass}">
+            <b>${task.title}</b> - ${task.description} (${task.status})
+          </span><br>
+          <button onclick="editTask(${task.id}, '${task.title}', '${task.description}')">Edit</button>
+          <button onclick="deleteTask(${task.id})">Delete</button>
+          <button onclick="completeTask(${task.id})">Done</button>
+        `
+
+        list.appendChild(li)
+      })
+    }
+
+    async function saveTask() {
+      const title = document.getElementById("title").value
+      const description = document.getElementById("description").value
+
+      if (editId) {
+        await fetch(`${API}/${editId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title, description })
+        })
+        editId = null
+      } else {
+        await fetch(API, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title, description })
+        })
+      }
+
+      document.getElementById("title").value = ""
+      document.getElementById("description").value = ""
+
+      loadTasks()
+    }
+
+    function editTask(id, title, description) {
+      document.getElementById("title").value = title
+      document.getElementById("description").value = description
+      editId = id
+    }
+
+    async function deleteTask(id) {
+      await fetch(`${API}/${id}`, { method: "DELETE" })
+      loadTasks()
+    }
+
+    async function completeTask(id) {
+      await fetch(`${API}/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "completed" })
+      })
+      loadTasks()
+    }
+
+    // ===== SEARCH FEATURE =====
+    async function searchTasks() {
+      const query = document.getElementById("searchInput").value
+
+      if (!query) {
+        loadTasks()
+        return
+      }
+
+      const res = await fetch(`${API}/search?title=${query}`)
+      const data = await res.json()
+
+      renderTasks(data)
+    }
+
+    loadTasks()
+  </script>
+</body>
+</html>
