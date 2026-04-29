@@ -30,13 +30,15 @@ let items = [
   }
 ];
 
-let nextId = 3;
+let nextId = 3; // auto-increments every time a new item is created
 
 // ================= HELPERS =================
+// sends a uniform JSON response shape across all routes
 const send = (res, success, data = null, message = null, status = 200) => {
   res.status(status).json({ success, data, message });
 };
 
+// lowercases and strips non-alphanumeric chars for loose matching
 const normalize = (text) =>
   text.toLowerCase().replace(/[^a-z0-9]/g, "");
 
@@ -104,7 +106,7 @@ app.post("/api/items", (req, res) => {
   }
 
   const newItem = {
-    id: nextId++,
+    id: nextId++, // assign then increment
     title,
     description: description || "",
     status: "pending",
@@ -117,6 +119,7 @@ app.post("/api/items", (req, res) => {
 });
 
 // ================= UPDATE =================
+// only updates fields that are present in the request body
 app.put("/api/items/:id", (req, res) => {
   const item = items.find(i => i.id == req.params.id);
 
@@ -141,7 +144,7 @@ app.delete("/api/items/:id", (req, res) => {
     return send(res, false, null, "Item not found", 404);
   }
 
-  const removed = items.splice(index, 1)[0];
+  const removed = items.splice(index, 1)[0]; // remove 1 item and capture it
 
   send(res, true, removed, "Deleted successfully");
 });
